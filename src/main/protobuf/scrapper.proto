@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package com.example.grpc;
+
+service ScrapingService {
+  rpc Scrape(ScrapeRequest) returns (ScrapeResponse) {}
+  rpc GetDownloadedImages(DownloadedImagesRequest) returns (DownloadedImagesResponse) {}
+}
+
+message ScrapeRequest {
+  string url = 1;
+}
+
+message ScrapeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DownloadedImagesRequest {}
+
+message DownloadedImagesResponse {
+  repeated string imagePaths = 1;
+}

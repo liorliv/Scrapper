@@ -19,29 +19,31 @@ object ImageDownloadActor {
 
   case class DownloadImage(urls: String, replyTo: ActorRef[Image]) extends Message
 
-  def apply()(implicit mat: Materializer): Behavior[Message] = Behaviors.receive { (context, message) =>
-    message match {
-      case DownloadImage(urls, replyTo) =>
-        import context.executionContext
-        val request = HttpRequest(HttpMethods.GET, urls)
-        Http(context.system).singleRequest(request, settings = ConnectionPoolSettings(context.system)
-          .withMaxOpenRequests(300)
+  def apply()(implicit mat: Materializer): Behavior[Message] =
+    Behaviors.receive { (context, message) =>
+      message match {
+        case DownloadImage(urls, replyTo) =>
+          import context.executionContext
+          val request = HttpRequest(HttpMethods.GET, urls)
+          Http(context.system)
+            .singleRequest(
+              request,
+              settings = ConnectionPoolSettings(context.system)
+                .withMaxOpenRequests(300)
+            )
+            .onComplete {
+              case Failure(_) => replyTo ! Image(urls, HttpResponse())
+              case Success(value) =>
+                val entityDataFuture: Future[ByteString] = value.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
+                entityDataFuture.onComplete {
+                  case Failure(_) => replyTo ! Image(urls, HttpResponse())
+                  case Success(entityData) =>
+                    val newResponse = HttpResponse(value.status, headers = value.headers, entity = entityData)
+                    replyTo ! Image(urls, newResponse)
+                }
+            }
 
-        )
-          .onComplete {
-            case Failure(_) => replyTo ! Image(urls, HttpResponse())
-            case Success(value) =>
-              val entityDataFuture: Future[ByteString] = value.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
-              entityDataFuture.onComplete {
-                case Failure(_) => replyTo ! Image(urls, HttpResponse())
-                case Success(entityData) =>
-                  val newResponse = HttpResponse(value.status, headers = value.headers, entity = entityData)
-                  replyTo ! Image(urls, newResponse)
-              }
-          }
-
-        Behaviors.same
+          Behaviors.same
+      }
     }
-  }
 }
-

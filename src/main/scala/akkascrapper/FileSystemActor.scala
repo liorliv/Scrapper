@@ -13,19 +13,20 @@ object FileSystemActor {
   case class SaveImage(url: String, response: HttpResponse) extends Message
   case class GetPaths(replyTo: ActorRef[List[String]]) extends Message
 
-  def apply()(implicit ec: ExecutionContext, mat: Materializer): Behavior[Message] = Behaviors.receive { (context, message) =>
-    message match {
-      case SaveImage(url, response) =>
-        val fileName = Paths.get(s"src/main/resources/tmp", url.split("/").lastOption.getOrElse("default.jpg"))
-        val fileSink = FileIO.toPath(fileName)
-        response.entity.dataBytes.runWith(fileSink)
-        Behaviors.same
+  def apply()(implicit ec: ExecutionContext, mat: Materializer): Behavior[Message] =
+    Behaviors.receive { (context, message) =>
+      message match {
+        case SaveImage(url, response) =>
+          val fileName = Paths.get(s"src/main/resources/tmp", url.split("/").lastOption.getOrElse("default.jpg"))
+          val fileSink = FileIO.toPath(fileName)
+          response.entity.dataBytes.runWith(fileSink)
+          Behaviors.same
 
-      case GetPaths(replyTo) =>
-        replyTo ! getAllPathsInFolder("src/main/resources/tmp")
-        Behaviors.same
+        case GetPaths(replyTo) =>
+          replyTo ! getAllPathsInFolder("src/main/resources/tmp")
+          Behaviors.same
+      }
     }
-  }
 
   def getAllPathsInFolder(folderPath: String): List[String] = {
     val directory = Paths.get(folderPath)

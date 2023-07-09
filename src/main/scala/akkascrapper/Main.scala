@@ -4,12 +4,12 @@ import com.example.grpc.scrapper.{DownloadedImagesRequest, ScrapeRequest, Scrapi
 import io.grpc.netty.NettyChannelBuilder
 import io.grpc.{ManagedChannel, StatusException, StatusRuntimeException}
 
-
 object Main extends App {
 
   val htmlPageUrl = "https://salt.security/"
 
-  private val channel: ManagedChannel = NettyChannelBuilder.forAddress("localhost", 50051)
+  private val channel: ManagedChannel = NettyChannelBuilder
+    .forAddress("localhost", 50051)
     .usePlaintext()
     .build()
 
@@ -22,8 +22,8 @@ object Main extends App {
     println(s"$res2")
   } catch {
     case e: StatusException => println(s"${e.getMessage} with status exception code - ${e.getStatus.getCode}")
-    case e: StatusRuntimeException => println(s"${e.getCause} with status runtime exception code - ${e.getStatus.getCode}")
+    case e: StatusRuntimeException =>
+      println(s"${e.getCause} with status runtime exception code - ${e.getStatus.getCode}")
   }
-
 
 }

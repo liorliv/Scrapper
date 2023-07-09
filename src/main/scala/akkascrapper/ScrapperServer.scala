@@ -7,7 +7,13 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.stream.Materializer
 import akka.util.Timeout
-import com.example.grpc.scrapper.{DownloadedImagesRequest, DownloadedImagesResponse, ScrapeRequest, ScrapeResponse, ScrapingServiceGrpc}
+import com.example.grpc.scrapper.{
+  DownloadedImagesRequest,
+  DownloadedImagesResponse,
+  ScrapeRequest,
+  ScrapeResponse,
+  ScrapingServiceGrpc
+}
 import com.example.grpc.scrapper.ScrapingServiceGrpc.ScrapingService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -39,8 +45,12 @@ class ScrapperServer(executionContext: ExecutionContext) { self =>
 
   private def start(): Unit = {
 
-    val a = new ScrapingServiceImpl(htmlParsingActor, imageDownloadActor, fileSystemActor)
-    server = ServerBuilder.forPort(ScrapperServer.port).addService(ScrapingServiceGrpc.bindService(a, executionContext)).build.start
+    val serviceImpl = new ScrapingServiceImpl(htmlParsingActor, imageDownloadActor, fileSystemActor)
+    server = ServerBuilder
+      .forPort(ScrapperServer.port)
+      .addService(ScrapingServiceGrpc.bindService(serviceImpl, executionContext))
+      .build
+      .start
     ScrapperServer.logger.info("Server started, listening on " + ScrapperServer.port)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
@@ -62,11 +72,10 @@ class ScrapperServer(executionContext: ExecutionContext) { self =>
   }
 
   class ScrapingServiceImpl(
-     htmlParsingActor: ActorRef[HtmlParsingActor.Message],
-     imageDownloadActor: ActorRef[ImageDownloadActor.Message],
-     fileSystemActor: ActorRef[FileSystemActor.Message]
-)
-    extends ScrapingService {
+      htmlParsingActor: ActorRef[HtmlParsingActor.Message],
+      imageDownloadActor: ActorRef[ImageDownloadActor.Message],
+      fileSystemActor: ActorRef[FileSystemActor.Message]
+  ) extends ScrapingService {
 
     override def scrape(request: ScrapeRequest): Future[ScrapeResponse] = {
       val imageUrlsFuture = htmlParsingActor ? (HtmlParsingActor.ParseHtml(request.url, _))
